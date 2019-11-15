@@ -51,12 +51,13 @@ const (
 
 type MetaWrapper struct {
 	sync.RWMutex
-	cluster string
-	localIP string
-	volname string
-	owner   string
-	master  util.MasterHelper
-	conns   *util.ConnectPool
+	cluster  string
+	localIP  string
+	volname  string
+	owner    string
+	master   util.MasterHelper
+	conns    *util.ConnectPool
+	secconns *util.SecConnectPool
 
 	// Partitions and ranges should be modified together. So do not
 	// use partitions and ranges directly. Use the helper functions instead.
@@ -85,6 +86,7 @@ func NewMetaWrapper(volname, owner, masterHosts string) (*MetaWrapper, error) {
 		mw.master.AddNode(ip)
 	}
 	mw.conns = util.NewConnectPool()
+	mw.secconns = util.NewSecConnectPool()
 	mw.partitions = make(map[uint64]*MetaPartition)
 	mw.ranges = btree.New(32)
 	mw.rwPartitions = make([]*MetaPartition, 0)

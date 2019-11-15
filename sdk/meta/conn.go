@@ -32,9 +32,11 @@ const (
 )
 
 type MetaConn struct {
-	conn *net.TCPConn
-	id   uint64 //PartitionID
-	addr string //MetaNode addr
+	conn    *net.TCPConn
+	version string
+	texp    int64
+	id      uint64 //PartitionID
+	addr    string //MetaNode addr
 }
 
 // Connection managements
@@ -59,6 +61,24 @@ func (mw *MetaWrapper) putConn(mc *MetaConn, err error) {
 		mw.conns.PutConnect(mc.conn, true)
 	} else {
 		mw.conns.PutConnect(mc.conn, false)
+	}
+}
+
+func (mw *MetaWrapper) getSecConn(partitionID uint64, addr string) (*MetaConn, error) {
+	conn, err := mw.secconns.GetSecConnect(addr)
+	if err != nil {
+		log.LogWarnf("GetSecConnect conn: addr(%v) err(%v)", addr, err)
+		return nil, err
+	}
+	mc := &MetaConn{conn: conn, id: partitionID, addr: addr}
+	return mc, nil
+}
+
+func (mw *MetaWrapper) putSecConn(mc *MetaConn, err error) {
+	if err != nil {
+		mw.secconns.PutSecConnect(mc.conn, true)
+	} else {
+		mw.secconns.PutSecConnect(mc.conn, false)
 	}
 }
 
