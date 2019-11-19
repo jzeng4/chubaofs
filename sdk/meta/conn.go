@@ -32,11 +32,9 @@ const (
 
 type MetaConn struct {
 	//conn    *net.TCPConn
-	conn    *SecConn
-	version string
-	texp    int64
-	id      uint64 //PartitionID
-	addr    string //MetaNode addr
+	conn *SecConn
+	id   uint64 //PartitionID
+	addr string //MetaNode addr
 }
 
 // Connection managements

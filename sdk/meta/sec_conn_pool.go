@@ -148,7 +148,7 @@ func (p *SecPool) initAllConnect() {
 			conn := c.(*net.TCPConn)
 			conn.SetKeepAlive(true)
 			conn.SetNoDelay(true)
-			o := &SecObject{conn: conn, idle: time.Now().UnixNano()}
+			o := &SecObject{conn: conn, idle: time.Now().UnixNano(), version: p.version, texp: p.texp}
 			p.PutConnectObjectToPool(o)
 		}
 	}
@@ -201,7 +201,7 @@ func (p *SecPool) GetConnectFromPool() (c *SecConn, err error) {
 	for i := 0; i < len(p.objects); i++ {
 		select {
 		case o = <-p.objects:
-			if time.Now().UnixNano()-int64(o.idle) > p.timeout {
+			if time.Now().UnixNano()-int64(o.idle) > p.timeout || time.Now().Unix() > int64(o.texp) {
 				o.conn.Close()
 				o = nil
 				break
