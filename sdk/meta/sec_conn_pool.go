@@ -12,7 +12,7 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package util
+package meta
 
 import (
 	"net"
@@ -43,11 +43,13 @@ type SecConnectPool struct {
 	mincap  int
 	maxcap  int
 	timeout int64
+	version string
+	texp    int64
 }
 
-func NewSecConnectPool() (cp *SecConnectPool) {
-	cp = &SecConnectPool{pools: make(map[string]*SecPool), mincap: 5, maxcap: 80, timeout: int64(time.Second * SecConnectIdleTime)}
-	go cp.autoSecRelease()
+func NewConnectPool(version string, texp int64) (cp *SecConnectPool) {
+	cp = &SecConnectPool{pools: make(map[string]*SecPool), mincap: 5, maxcap: 80, timeout: int64(time.Second * SecConnectIdleTime), version: version, texp: texp}
+	go cp.autoRelease()
 
 	return cp
 }
@@ -64,43 +66,43 @@ func NewSecConnectPool() (cp *SecConnectPool) {
 	return
 }*/
 
-func (cp *SecConnectPool) GetSecConnect(targetAddr string) (c *SecConn, err error) {
+func (cp *SecConnectPool) GetConnect(targetAddr string) (c *SecConn, err error) {
 	cp.RLock()
 	pool, ok := cp.pools[targetAddr]
 	cp.RUnlock()
 	if !ok {
 		cp.Lock()
-		pool = NewSecPool(cp.mincap, cp.maxcap, cp.timeout, targetAddr)
+		pool = NewPool(cp.mincap, cp.maxcap, cp.timeout, targetAddr, cp.version, cp.texp)
 		cp.pools[targetAddr] = pool
 		cp.Unlock()
 	}
 
-	return pool.GetSecConnectFromPool()
+	return pool.GetConnectFromPool()
 }
 
-func (cp *SecConnectPool) PutSecConnect(c *net.TCPConn, forceClose bool) {
+func (cp *SecConnectPool) PutConnect(c *SecConn, forceClose bool) {
 	if c == nil {
 		return
 	}
 	if forceClose {
-		c.Close()
+		c.conn.Close()
 		return
 	}
-	addr := c.RemoteAddr().String()
+	addr := c.conn.RemoteAddr().String()
 	cp.RLock()
 	pool, ok := cp.pools[addr]
 	cp.RUnlock()
 	if !ok {
-		c.Close()
+		c.conn.Close()
 		return
 	}
-	object := &SecObject{conn: c, idle: time.Now().UnixNano()}
-	pool.PutSecConnectObjectToPool(object)
+	object := &SecObject{conn: c.conn, idle: time.Now().UnixNano(), texp: c.texp, version: c.version}
+	pool.PutConnectObjectToPool(object)
 
 	return
 }
 
-func (cp *SecConnectPool) autoSecRelease() {
+func (cp *SecConnectPool) autoRelease() {
 	for {
 		pools := make([]*SecPool, 0)
 		cp.RLock()
@@ -109,7 +111,7 @@ func (cp *SecConnectPool) autoSecRelease() {
 		}
 		cp.RUnlock()
 		for _, pool := range pools {
-			pool.autoSecRelease()
+			pool.autoRelease()
 		}
 		time.Sleep(time.Second)
 	}
@@ -122,20 +124,24 @@ type SecPool struct {
 	maxcap  int
 	target  string
 	timeout int64
+	version string
+	texp    int64
 }
 
-func NewSecPool(min, max int, timeout int64, target string) (p *SecPool) {
+func NewPool(min, max int, timeout int64, target string, version string, texp int64) (p *SecPool) {
 	p = new(SecPool)
 	p.mincap = min
 	p.maxcap = max
 	p.target = target
 	p.objects = make(chan *SecObject, max)
 	p.timeout = timeout
-	p.initAllSecConnect()
+	p.version = version
+	p.texp = texp
+	p.initAllConnect()
 	return p
 }
 
-func (p *SecPool) initAllSecConnect() {
+func (p *SecPool) initAllConnect() {
 	for i := 0; i < p.mincap; i++ {
 		c, err := net.Dial("tcp", p.target)
 		if err == nil {
@@ -143,12 +149,12 @@ func (p *SecPool) initAllSecConnect() {
 			conn.SetKeepAlive(true)
 			conn.SetNoDelay(true)
 			o := &SecObject{conn: conn, idle: time.Now().UnixNano()}
-			p.PutSecConnectObjectToPool(o)
+			p.PutConnectObjectToPool(o)
 		}
 	}
 }
 
-func (p *SecPool) PutSecConnectObjectToPool(o *SecObject) {
+func (p *SecPool) PutConnectObjectToPool(o *SecObject) {
 	select {
 	case p.objects <- o:
 		return
@@ -160,7 +166,7 @@ func (p *SecPool) PutSecConnectObjectToPool(o *SecObject) {
 	}
 }
 
-func (p *SecPool) autoSecRelease() {
+func (p *SecPool) autoRelease() {
 	connectLen := len(p.objects)
 	for i := 0; i < connectLen; i++ {
 		select {
@@ -168,7 +174,7 @@ func (p *SecPool) autoSecRelease() {
 			if time.Now().UnixNano()-int64(o.idle) > p.timeout {
 				o.conn.Close()
 			} else {
-				p.PutSecConnectObjectToPool(o)
+				p.PutConnectObjectToPool(o)
 			}
 		default:
 			return
@@ -176,19 +182,19 @@ func (p *SecPool) autoSecRelease() {
 	}
 }
 
-func (p *SecPool) NewSecConnect(target string) (c *SecConn, err error) {
+func (p *SecPool) NewConnect(target string) (c *SecConn, err error) {
 	var connect net.Conn
 	connect, err = net.Dial("tcp", p.target)
 	if err == nil {
 		conn := connect.(*net.TCPConn)
 		conn.SetKeepAlive(true)
 		conn.SetNoDelay(true)
-		c = &SecConn{conn: conn, texp: p.texp, version: o.version}
+		c = &SecConn{conn: conn, texp: p.texp, version: p.version}
 	}
 	return
 }
 
-func (p *SecPool) GetSecConnectFromPool() (c *SecConn, err error) {
+func (p *SecPool) GetConnectFromPool() (c *SecConn, err error) {
 	var (
 		o *SecObject
 	)
@@ -202,9 +208,9 @@ func (p *SecPool) GetSecConnectFromPool() (c *SecConn, err error) {
 			}
 			return &SecConn{conn: o.conn, texp: o.texp, version: o.version}, nil
 		default:
-			return p.NewSecConnect(p.target)
+			return p.NewConnect(p.target)
 		}
 	}
 
-	return p.NewSecConnect(p.target)
+	return p.NewConnect(p.target)
 }

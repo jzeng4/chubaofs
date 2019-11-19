@@ -16,7 +16,6 @@ package meta
 
 import (
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/chubaofs/chubaofs/util/errors"
@@ -32,7 +31,8 @@ const (
 )
 
 type MetaConn struct {
-	conn    *net.TCPConn
+	//conn    *net.TCPConn
+	conn    *SecConn
 	version string
 	texp    int64
 	id      uint64 //PartitionID
@@ -65,7 +65,7 @@ func (mw *MetaWrapper) putConn(mc *MetaConn, err error) {
 }
 
 func (mw *MetaWrapper) getSecConn(partitionID uint64, addr string) (*MetaConn, error) {
-	conn, err := mw.secconns.GetSecConnect(addr)
+	conn, err := mw.conns.GetConnect(addr)
 	if err != nil {
 		log.LogWarnf("GetSecConnect conn: addr(%v) err(%v)", addr, err)
 		return nil, err
@@ -76,9 +76,9 @@ func (mw *MetaWrapper) getSecConn(partitionID uint64, addr string) (*MetaConn, e
 
 func (mw *MetaWrapper) putSecConn(mc *MetaConn, err error) {
 	if err != nil {
-		mw.secconns.PutSecConnect(mc.conn, true)
+		mw.conns.PutConnect(mc.conn, true)
 	} else {
-		mw.secconns.PutSecConnect(mc.conn, false)
+		mw.conns.PutConnect(mc.conn, false)
 	}
 }
 
@@ -139,12 +139,12 @@ out:
 }
 
 func (mc *MetaConn) send(req *proto.Packet) (resp *proto.Packet, err error) {
-	err = req.WriteToConn(mc.conn)
+	err = req.WriteToConn(mc.conn.conn)
 	if err != nil {
 		return nil, errors.Trace(err, "Failed to write to conn, req(%v)", req)
 	}
 	resp = proto.NewPacket()
-	err = resp.ReadFromConn(mc.conn, proto.ReadDeadlineTime)
+	err = resp.ReadFromConn(mc.conn.conn, proto.ReadDeadlineTime)
 	if err != nil {
 		return nil, errors.Trace(err, "Failed to read from conn, req(%v)", req)
 	}
