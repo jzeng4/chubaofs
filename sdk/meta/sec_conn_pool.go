@@ -20,6 +20,79 @@ import (
 	"time"
 )
 
+/*
+// WriteToConn writes through the given connection.
+func (p *Packet) WriteToConn(c net.Conn) (err error) {
+	c.SetWriteDeadline(time.Now().Add(WriteDeadlineTime * time.Second))
+	header, err := Buffers.Get(util.PacketHeaderSize)
+	if err != nil {
+		header = make([]byte, util.PacketHeaderSize)
+	}
+	defer Buffers.Put(header)
+
+	p.MarshalHeader(header)
+	if _, err = c.Write(header); err == nil {
+		if _, err = c.Write(p.Arg[:int(p.ArgLen)]); err == nil {
+			if p.Data != nil && p.Size != 0 {
+				_, err = c.Write(p.Data[:p.Size])
+			}
+		}
+	}
+
+	return
+}
+
+
+func (p *Pool) send(req *proto.Packet, c *net.TCPConn, msg string) (resp *proto.Packet, err error) {
+	err = req.WriteToConn(c)
+	if err != nil {
+		return nil, errors.Trace(err, "%s: Failed to write to conn, req(%v)", msg, req)
+	}
+	resp = proto.NewPacket()
+	err = resp.ReadFromConn(c, proto.ReadDeadlineTime)
+	if err != nil {
+		return nil, errors.Trace(err, "% Failed to read from conn, req(%v)", msg, req)
+	}
+	return resp, nil
+}
+
+func (p *Pool) secHandShake(c *net.TCPConn) (err error) {
+	var (
+		err  error
+		resp *proto.Packet
+	)
+
+	reqHello := &proto.ClientHelloRequest{}
+	packet := proto.NewPacketReqID()
+	packet.Opcode = proto.OpClientHello
+	err = packet.MarshalData(reqHello)
+	if err != nil {
+		//log.LogErrorf("clientHello: err(%v)", err)
+		return
+	}
+	resp, err = p.send(packet, c, "clientHello")
+	if err != nil {
+		return
+	}
+
+	//log.LogInfof("jzeng successfully")
+
+	//TODO verify ReadResponse
+
+	req := &proto.ClientVerifyRequest{}
+	packet := proto.NewPacketReqID()
+	packet.Opcode = proto.OpClientVerify
+	err = packet.MarshalData(req)
+	if err != nil {
+		log.LogErrorf("clientHello: err(%v)", err)
+		return
+	}
+	resp, err = p.send(packet, c, "clientHello")
+	if err != nil {
+		return
+	}
+
+}*/
 type SecObject struct {
 	conn    *net.TCPConn
 	idle    int64

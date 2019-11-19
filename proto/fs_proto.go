@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/chubaofs/chubaofs/util/cryptoutil"
 )
 
 const (
@@ -79,6 +81,21 @@ type Dentry struct {
 // String returns the string format of the dentry.
 func (d Dentry) String() string {
 	return fmt.Sprintf("Dentry{Name(%v),Inode(%v),Type(%v)}", d.Name, d.Inode, d.Type)
+}
+
+// ClientHelloRequest defines the request for hello.
+type ClientHelloRequest struct {
+}
+
+// ClientHelloResponse defines the request for hello.
+type ClientHelloResponse struct {
+	SNonce uint64 `json:"server_nonce"`
+}
+
+// ClientVerifyRequest defines the request for verification
+type ClientVerifyRequest struct {
+	Ticket cryptoutil.Ticket `json:"ticket"`
+	// TODO
 }
 
 // CreateInodeRequest defines the request to create an inode.

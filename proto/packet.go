@@ -19,13 +19,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/chubaofs/chubaofs/util"
-	"github.com/chubaofs/chubaofs/util/buf"
 	"io"
 	"net"
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/chubaofs/chubaofs/util"
+	"github.com/chubaofs/chubaofs/util/buf"
 )
 
 var (
@@ -65,6 +66,10 @@ const (
 	OpReadTinyDeleteRecord           uint8 = 0x14
 	OpTinyExtentRepairRead           uint8 = 0x15
 	OpGetMaxExtentIDAndPartitionSize uint8 = 0x16
+
+	// secure HandShake
+	OpClientHello  uint8 = 0x17
+	OpClientVerify uint8 = 0x18
 
 	// Operations: Client -> MetaNode.
 	OpMetaCreateInode   uint8 = 0x20
