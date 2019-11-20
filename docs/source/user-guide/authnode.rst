@@ -13,10 +13,7 @@ Concepts
 
 - Ticket: a bit of data that cryptographically asserts identity and authorization (through a list of capabilities) for a service for a period of time.
 
-- Capability: a capability is defined in the format of `node:object:action` where `node` refers to a service node (such as `auth`, `master`, `meta` or `data`), `object` refers to the resource and `action` refers to permitted activities (such as read, write and access).
-
-.. table:: capability examples:
-   :widths: auto
+- Capability: a capability is defined in the format of `node:object:action` where `node` refers to a service node (such as `auth`, `master`, `meta` or `data`), `object` refers to the resource and `action` refers to permitted activities (such as read, write and access). See examples below.
 
 +-----------------------+-----------------------------------------------------+
 |       capability      |                     Specification                   |
@@ -38,7 +35,20 @@ Use the following commands to build client side tool for `Authnode`:
    $ cd chubaofs
    $ make build
 
-If successful, The tool `cfs-authtool` can be found in `build/bin`.
+If successful, The tool `cfs-authtool` can be found in `build/bin`. 
+
+Description
+~~~~~~~~~~~~~~~~~~~~
+cfs-authtool is a utility to create, view, and modify a Ceph keyring file. A keyring file stores one or more Ceph authentication keys and possibly an associated capability specification. Each key is associated with an entity name, of the form {client,mon,mds,osd}.name.
+
+WARNING Ceph provides authentication and protection against man-in-the-middle attacks once secret keys are in place. However, data over the wire is not encrypted, which may include the messages used to configure said keys. The system is primarily intended to be used in trusted environments.
+
+
+Synopsis
+~~~~~~~~~~~~~~~~~~~~
+cfs-authtool keyringfile [ -l | –list ] [ -p | –print-key ] [ -C | –create-keyring ] [ -g | –gen-key ] [ –gen-print-key ] [ –import-keyring otherkeyringfile ] [ -n | –name entityname ] [ -u | –set-uid auid ] [ -a | –add-key base64_key ] [ –cap subsystem capability ] [ –caps capfile ]
+
+
 
 Configurations
 -------------------
@@ -166,8 +176,10 @@ caps: will set the capabilities of id
 
         output: will set file path for secret key
 
-Create a user in Authnode
----------------------------
+
+Create key for ChubaoFS cluster
+--------------------------------
+
 Get `Authnode` ticket using `admin` key:
 
 .. code-block:: bash
@@ -175,34 +187,7 @@ Get `Authnode` ticket using `admin` key:
   $ ./cfs-authtool ticket -host=192.168.0.14:8080 -keyfile=key_admin.json -output=ticket_admin.json getticket AuthService
 
 
-Create a new user `test` using `Authnode` ticket:
-
-.. code-block:: bash
-
-  $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_admin.json -data=data_client.json -output=key_client.json AuthService createkey
-
-  example  ``data_client.json`` ：
-
-  .. code-block:: json
-
-    {
-        "id": "test",
-        "role": "client",
-        "caps": "{\"API\":[\"master:getvol:access\"]}"
-    }
-
-- Note: `test` can access `getvol` api in `Master` node according to its capability.
-
-Get `Master` service ticket using `test` key:
-
-.. code-block:: bash
-
-  $ ./cfs-authtool ticket -host=192.168.0.14:8080 -keyfile=key_client.json -output=ticket_client.json getticket MasterService
-
-
-Create key for ChubaoFS cluster
---------------------------------
-Create key for `Master`
+Create key for Master
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
@@ -218,4 +203,63 @@ Create key for `Master`
         "role": "service",
         "caps": "{\"API\":[\"*:*:*\"]}"
     }
-    Note: `MasterService` is reserved for `Master`
+    `MasterService` is reserved for `Master` node. from the output file `key_master.json`, copy `key` and its value to `master.json` and rename `key` as 'masterServiceKey'.
+
+  Create key for Client
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  .. code-block:: bash
+
+    $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_admin.json -data=data_client.json -output=key_client.json AuthService createkey
+
+  ``data_client`` :
+    
+  .. code-block:: json
+  
+    {
+        "id": "ltptest",
+        "role": "client",
+        "caps": "{\"API\":[\"*:*:*\"]}"
+    }
+  Copy `key` and its value to `client.json` and rename `key` as `clientKey`
+
+  ``client.json`` ：
+  
+  .. code-block:: json
+  
+    {
+        "masterAddr": "192.168.0.11:17010,192.168.0.12:17010,192.168.0.13:17010",
+        "mountPoint": "/cfs/mnt",
+        "volName": "ltptest",
+        "owner": "ltptest",
+        "logDir": "/cfs/log",
+        "logLevel": "info",
+        "consulAddr": "http://192.168.0.100:8500",
+        "exporterPort": 9500,
+        "profPort": "17410",
+        "authenticate": true,
+        "ticketHost": "192.168.0.14:8080,192.168.0.15:8081,192.168.0.16:8082",
+        "clientKey": "jgBGSNQp6mLbu7snU8wKIdEkytzl+pO5/OZOJPpIgH4=",
+        "enableHTTPS": "false"
+    }
+    
+  Parameter：
+  
+      authenticate: will enable authentication flow if set true.
+      
+      ticketHost: will set the IP/URL of `Authnode` cluster.
+      
+      clientKey: will set the key generated by `Authnode`
+      
+      enableHTTPS: will enable HTTPS if set true.
+
+
+Start ChubaoFS cluster
+-----------------------  
+
+  .. code-block:: bash
+  
+    $ docker/run_docker.sh -r -d /data/disk
+
+  在客户端的启动过程中，会先使用clientKey从authnode节点处获取访问Master节点的ticket，再使用ticket访问Master API。因此，只有被受权的客户端才能成功启动并挂载。
+
