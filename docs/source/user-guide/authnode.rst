@@ -200,12 +200,22 @@ Get `Master` service ticket using `test` key:
   $ ./cfs-authtool ticket -host=192.168.0.14:8080 -keyfile=key_client.json -output=ticket_client.json getticket MasterService
 
 
-
--------------------------
-
-Create key for `Master` node
+Create key for ChubaoFS cluster
+--------------------------------
+Create key for `Master`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
   $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_admin.json -data=data_master.json -output=key_master.json AuthService createkey
+
+  ``data_master`` ：
+
+  .. code-block:: json
+
+    {
+        "id": "MasterService",
+        "role": "service",
+        "caps": "{\"API\":[\"*:*:*\"]}"
+    }
+    Note: `MasterService` is reserved for `Master`
