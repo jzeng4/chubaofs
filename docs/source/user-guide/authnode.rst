@@ -55,7 +55,6 @@ If successful, the tool `cfs-authtool` can be found in `build/bin`.
 
 Synopsis
 ~~~~~~~~~~~
-.. code-block:: bash
 cfs-authtool ticket -host=AuthNodeAddress [-keyfile=Keyfile] [-output=TicketOutput] [-https=TrueOrFalse -certfile=AuthNodeCertfile] TicketService Service
 
 cfs-authtool api -host=AuthNodeAddress -ticketfile=TicketFile [-data=RequestDataFile] [-output=KeyFile] [-https=TrueOrFalse -certfile=AuthNodeCertfile] Service Request
@@ -127,23 +126,23 @@ Steps for Starting ChubaoFS with AuthNode
 Create Authnode key
 ~~~~~~~~~~~~~~~~~~~~~~
 Run the command:
-.. code-block:: bash
+
   .. code-block:: bash
 
     $ ./cfs-authtool authkey
 
-  If successful, two key files can be generated ``authroot.json`` and ``authservice.json`` under current directory. They represent `authServiceKey` and `authRootKey` respectively.
+If successful, two key files can be generated ``authroot.json`` and ``authservice.json`` under current directory.
+They represent `authServiceKey` and `authRootKey` respectively.
  
-  example ``authservice.json`` :
-
+example ``authservice.json`` :
   .. code-block:: json
 
     {
-        "id": "AuthService",
-        "key": "9h/sNq4+5CUAyCnAZM927Y/gubgmSixh5hpsYQzZG20=",
-        "create_ts": 1573801212,
-        "role": "AuthService",
-        "caps": "{\"*\"}"
+         "id": "AuthService",
+         "key": "9h/sNq4+5CUAyCnAZM927Y/gubgmSixh5hpsYQzZG20=",
+         "create_ts": 1573801212,
+         "role": "AuthService",
+         "caps": "{\"*\"}"
     }
 
 
@@ -151,9 +150,8 @@ Edit ``authnode.json`` in `docker/conf` as following:
 
   - ``authRootKey``: use the value of ``key`` in ``authroot.json``
   - ``authServiceKey``: use the value of ``key`` in ``authService.json``
- 
-  example ``authnode.json`` :
 
+  example ``authnode.json`` :
   .. code-block:: json
 
     {
@@ -197,7 +195,6 @@ Get `Authnode` ticket using `authServiceKey`:
 
    
     example ``ticket_auth.json`` :
-
     .. code-block:: json
 
       {
@@ -209,20 +206,19 @@ Get `Authnode` ticket using `authServiceKey`:
 
 Create `admin` using `Authnode` ticket:
 
- .. code-block:: bash
+  .. code-block:: bash
 
-  $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_auth.json -data=data_admin.json -output=key_admin.json AuthService createkey
+    $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_auth.json -data=data_admin.json -output=key_admin.json AuthService createkey
 
 
- example ``data_admin.json``:
+    example ``data_admin.json`` :
+    .. code-block:: json
 
- .. code-block:: json
-
-   {
-     "id": "admin",
-     "role": "service",
-     "caps": "{\"API\":[\"*:*:*\"]}"
-   }
+      {
+          "id": "admin",
+          "role": "service",
+          "caps": "{\"API\":[\"*:*:*\"]}"
+      }
 
 
 Create key for ChubaoFS cluster
@@ -314,7 +310,7 @@ Create key for ChubaoFS cluster
 Start ChubaoFS cluster
 ~~~~~~~~~~~~~~~~~~~~~~~
  Run the following to launch ChubaoFS cluster with `AuthNode` enabled:
- 
+
   .. code-block:: bash
 
     $ docker/run_docker.sh -r -d /data/disk
