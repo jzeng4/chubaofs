@@ -55,6 +55,7 @@ If successful, the tool `cfs-authtool` can be found in `build/bin`.
 
 Synopsis
 ~~~~~~~~~~~
+.. code-block:: bash
 cfs-authtool ticket -host=AuthNodeAddress [-keyfile=Keyfile] [-output=TicketOutput] [-https=TrueOrFalse -certfile=AuthNodeCertfile] TicketService Service
 
 cfs-authtool api -host=AuthNodeAddress -ticketfile=TicketFile [-data=RequestDataFile] [-output=KeyFile] [-https=TrueOrFalse -certfile=AuthNodeCertfile] Service Request
@@ -126,7 +127,7 @@ Steps for Starting ChubaoFS with AuthNode
 Create Authnode key
 ~~~~~~~~~~~~~~~~~~~~~~
 Run the command:
-
+.. code-block:: bash
   .. code-block:: bash
 
     $ ./cfs-authtool authkey
@@ -195,7 +196,7 @@ Get `Authnode` ticket using `authServiceKey`:
     $ ./cfs-authtool ticket -host=192.168.0.14:8080 -keyfile=authservice.json -output=ticket_auth.json getticket AuthService
 
    
-    ``ticket_auth.json`` :
+    example ``ticket_auth.json`` :
 
     .. code-block:: json
 
@@ -213,7 +214,7 @@ Create `admin` using `Authnode` ticket:
   $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_auth.json -data=data_admin.json -output=key_admin.json AuthService createkey
 
 
- ``data_admin.json``:
+ example ``data_admin.json``:
 
  .. code-block:: json
 
@@ -241,7 +242,7 @@ Create key for ChubaoFS cluster
 
    $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_admin.json -data=data_master.json -output=key_master.json AuthService createkey
 
- ``data_master.json`` ：
+ example ``data_master.json`` ：
 
  .. code-block:: json
 
@@ -267,7 +268,7 @@ Create key for ChubaoFS cluster
 
     $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_admin.json -data=data_client.json -output=key_client.json AuthService createkey
 
-  ``data_client``:
+  example ``data_client``:
 
   .. code-block:: json
 
@@ -280,7 +281,7 @@ Create key for ChubaoFS cluster
   Edit ``client.json`` as following:
    ``clientKey``: use the value of ``key`` in ``key_client.json``
 
-  ``client.json`` ：
+  example ``client.json`` ：
 
   .. code-block:: json
 
@@ -313,6 +314,7 @@ Create key for ChubaoFS cluster
 Start ChubaoFS cluster
 ~~~~~~~~~~~~~~~~~~~~~~~
  Run the following to launch ChubaoFS cluster with `AuthNode` enabled:
+ 
   .. code-block:: bash
 
     $ docker/run_docker.sh -r -d /data/disk
