@@ -135,6 +135,7 @@ If successful, two key files can be generated ``authroot.json`` and ``authservic
 They represent `authServiceKey` and `authRootKey` respectively.
  
 example ``authservice.json`` :
+
   .. code-block:: json
 
     {
@@ -152,6 +153,7 @@ Edit ``authnode.json`` in `docker/conf` as following:
   - ``authServiceKey``: use the value of ``key`` in ``authService.json``
 
   example ``authnode.json`` :
+
   .. code-block:: json
 
     {
@@ -195,6 +197,7 @@ Get `Authnode` ticket using `authServiceKey`:
 
    
     example ``ticket_auth.json`` :
+
     .. code-block:: json
 
       {
@@ -211,13 +214,14 @@ Create `admin` using `Authnode` ticket:
     $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_auth.json -data=data_admin.json -output=key_admin.json AuthService createkey
 
 
-    example ``data_admin.json`` :
+    example ``data_admin.json`` :
+
     .. code-block:: json
 
       {
           "id": "admin",
           "role": "service",
-          "caps": "{\"API\":[\"*:*:*\"]}"
+          "caps": "{\"API\":[\*:\*:\*]}}",
       }
 
 
@@ -238,15 +242,15 @@ Create key for ChubaoFS cluster
 
    $ ./cfs-authtool api -host=192.168.0.14:8080 -ticketfile=ticket_admin.json -data=data_master.json -output=key_master.json AuthService createkey
 
- example ``data_master.json`` ：
+    example ``data_master.json`` :
 
- .. code-block:: json
+    .. code-block:: json
 
-   {
-       "id": "MasterService",
-       "role": "service",
-       "caps": "{\"API\":[\"*:*:*\"]}"
-   }
+      {
+          "id": "MasterService",
+          "role": "service",
+          "caps": "{\"API\":[\*:\*:\*]}}",
+      }
 
    Specifications:
         id: will set `Client` ID
