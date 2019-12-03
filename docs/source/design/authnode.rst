@@ -22,7 +22,7 @@ High Level Architecture
 
 In the context of `Authnode`, we define a node as `Client` if it is responsible to initialize a service request while `Server` or `Service` is defined as the node responding that request. In this case, any `ChubaoFS` nodes can be acted as either `Client` or `Server`.
 
-The communication between `Client` and `Server` is based on `HTTPS` or `TCP` and the work flow of `Authnode` is depicted in above graph and briefly described as following:
+The communication between `Client` and `Server` is based on `HTTPS` or `TCP` and the workflow of `Authnode` is depicted in the graph above and briefly described as follows:
 
 Ticket Request (F1)
 +++++++++++++++++++
@@ -71,15 +71,15 @@ Current implementation of `Authnode` doesn't support some advanced features:
 
 - Key rotation: Shared secret keys are hardcoded in client and server and would not changed. It increases security risks that attacks break the encryption and find the keys. Rotating keys on a regular basis would help to mitigate such risks.
 - Ticket revocation: For performance considerations, ticket would be valid for a while (such as several hours). If a client unfortunately leaks its ticket, malicious parties are able to use the ticket for service request during the period of being valid. Ticket revocation mechanism can prevent such an issue by revoking it once leakage happens.
-- HSM support: `Authnode` is the security bottleneck in `ChubaoFS`. Breaking `Authnode` means compromising the whole system since it manages the key store. Hardware Security Module or HSM provides physical safeguards for key managements. Having `Authnode` protected by HSM (for example *SGX*) can mitigate the risk of `Authnode` being compromised.
+- HSM support: `Authnode` is the security bottleneck in `ChubaoFS`. Breaking `Authnode` means compromising the whole system since it manages the key store. Hardware Security Module or HSM provides physical safeguards for key management. Having `Authnode` protected by HSM (for example *SGX*) can mitigate the risk of `Authnode` being compromised.
 
 
 End-to-End Data Encryption
 ++++++++++++++++++++++++++
 
-Current implementation of `Authnode` doesn't systematically support encryption for data in transit and at rest even though we may use session key to encrypt data during communication. A more secure way to protect data is to have `End-to-End` data encryption. In particular, encryption keys are managed and distributed by `Authnode` and data are encrypted in client node, sent via network and stored in server. Compared with server side encryption based on existing tools (`fscrypt`, `ecryptfs` and `dm-crypt`), End-to-End data Encryption has the following advantages at least:
+Current implementation of `Authnode` doesn't systematically support encryption for data in transit and at rest even though we may use session key to encrypt data during communication. A more secure way to protect data is to have `End-to-End Data Encryption'. In particular, encryption keys are managed and distributed by `Authnode` and data are encrypted in client node, sent via network and stored in server. Compared with server side encryption based on existing tools (`fscrypt`, `ecryptfs` and `dm-crypt`), `End-to-End Data Encryption` has the following advantages at least:
 
 - It mitigates data leakage once data servers (for example `Data Node`) are broken into by attackers since keys of data decoding are stored in `Authnode`.
-- It provide a centralized management (rotation, revocation and generation) for encryption key.
+- It provides a centralized management (rotation, revocation and generation) for encryption key.
 
 
