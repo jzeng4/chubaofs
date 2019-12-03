@@ -77,7 +77,7 @@ Current implementation of `Authnode` doesn't support some advanced features:
 End-to-End Data Encryption
 ++++++++++++++++++++++++++
 
-Current implementation of `Authnode` doesn't systematically support encryption for data in transit and at rest even though we may use session key to encrypt data during communication. A more secure way to protect data is to have `End-to-End` `Data` `Encryption'. In particular, encryption keys are managed and distributed by `Authnode` and data are encrypted in client node, sent via network and stored in server. Compared with server side encryption based on existing tools (`fscrypt`, `ecryptfs` and `dm-crypt`), `End-to-End` `Data` `Encryption` has the following advantages at least:
+Current implementation of `Authnode` doesn't systematically support encryption for data in transit and at rest even though we may use session key to encrypt data during communication. A more secure way to protect data is to have `End-to-End` `Data` `Encryption`. In particular, encryption keys are managed and distributed by `Authnode` and data are encrypted in client node, sent via network and stored in server. Compared with server side encryption based on existing tools (`fscrypt`, `ecryptfs` and `dm-crypt`), `End-to-End` `Data` `Encryption` has the following advantages at least:
 
 - It mitigates data leakage once data servers (for example `Data Node`) are broken into by attackers since keys of data decoding are stored in `Authnode`.
 - It provides a centralized management (rotation, revocation and generation) for encryption key.
