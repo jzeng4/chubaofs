@@ -35,7 +35,7 @@ Before any service requests, client holding a secret key *Ckey* is required to g
 After obtaining the ticket and processing some security checks with *Ckey*, client has in its possession *sess_key* and Skey{*ticket*} for future service requests.
 
 
-Service Request (F2) in HTTPS
+Service Request in HTTPS (F2)
 +++++++++++++++++++++++++++++
 
 If a service request is sent via HTTPS protocol, it has the following steps:
@@ -46,7 +46,7 @@ If a service request is sent via HTTPS protocol, it has the following steps:
 Client uses *sess_key* to decrypt message returned from server and verify its validity.
 
 
-Service Request (F3) in TCP
+Service Request in TCP (F3)
 +++++++++++++++++++++++++++
 
 If a service request is sent via TCP protocol, it has the following steps:
