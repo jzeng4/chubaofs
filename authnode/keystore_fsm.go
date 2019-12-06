@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/chubaofs/chubaofs/raftstore"
@@ -54,7 +55,6 @@ type KeystoreFsm struct {
 	ksMutex    sync.RWMutex // keystore mutex
 	opKeyMutex sync.RWMutex // operations on key mutex
 	id         uint64       // current id of server
-	leader     uint64       // cluster leader id
 }
 
 func newKeystoreFsm(store *raftstore.RocksDBStore, retainsLog uint64, rs *raft.RaftServer) (fsm *KeystoreFsm) {
@@ -105,6 +105,7 @@ func (mf *KeystoreFsm) restoreApplied() {
 func (mf *KeystoreFsm) Apply(command []byte, index uint64) (resp interface{}, err error) {
 	var (
 		keyInfo keystore.KeyInfo
+		id      uint64
 	)
 	cmd := new(RaftCmd)
 	if err = cmd.Unmarshal(command); err != nil {
@@ -112,30 +113,45 @@ func (mf *KeystoreFsm) Apply(command []byte, index uint64) (resp interface{}, er
 		panic(err)
 	}
 	log.LogInfof("action[fsmApply],cmd.op[%v],cmd.K[%v],cmd.V[%v]", cmd.Op, cmd.K, string(cmd.V))
-	cmdMap := make(map[string][]byte)
-	cmdMap[cmd.K] = cmd.V
-	cmdMap[applied] = []byte(strconv.FormatUint(uint64(index), 10))
 
-	for _, value := range cmdMap {
-		fmt.Print(string(value))
-		if err := json.Unmarshal(value, &keyInfo); err != nil {
-			panic(err)
-		}
+	if err = json.Unmarshal(cmd.V, &keyInfo); err != nil {
+		panic(err)
 	}
+
+	s := strings.Split(cmd.K, idSeparator)
+	if len(s) != 2 {
+		panic(fmt.Errorf("cmd.K format error %s", cmd.K))
+	}
+	id, err = strconv.ParseUint(s[1], 10, 64)
+	if err != nil {
+		panic(fmt.Errorf("id format error %s", s[1]))
+	}
+
+	cmdMap := make(map[string][]byte)
+	//cmdMap[cmd.K] = cmd.V
+	cmdMap[s[0]] = cmd.V
+	cmdMap[applied] = []byte(strconv.FormatUint(uint64(index), 10))
 
 	switch cmd.Op {
 	case opSyncDeleteKey:
 		if err = mf.delKeyAndPutIndex(cmd.K, cmdMap); err != nil {
 			panic(err)
 		}
-		if mf.leader != mf.id {
+		//if mf.leader != mf.id {
+		// We don't use above statement to avoid "leader double-change of keystore cache"
+		// There may one race condition that when "Apply" raftlog, leader change happens
+		// so that some cache changes may happen while some are "double-change".
+		// Therefore, we use the following statement: "id" indicates which server has Change
+		// keystore cache (typical leader)
+		if mf.id != id {
 			mf.DeleteKey(string(keyInfo.Key))
 		}
 	default:
 		if err = mf.batchPut(cmdMap); err != nil {
 			panic(err)
 		}
-		if mf.leader != mf.id {
+		//if mf.leader != mf.id {
+		if mf.id != id {
 			mf.PutKey(&keyInfo)
 		}
 	}

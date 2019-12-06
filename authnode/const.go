@@ -30,6 +30,7 @@ const (
 
 const (
 	keySeparator = "#"
+	idSeparator  = "$"
 	keyAcronym   = "key"
 	ksPrefix     = keySeparator + keyAcronym + keySeparator
 )

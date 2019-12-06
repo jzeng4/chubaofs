@@ -62,7 +62,6 @@ func newCluster(name string, leaderInfo *LeaderInfo, fsm *KeystoreFsm, partition
 
 func (c *Cluster) scheduleTask() {
 	c.scheduleToCheckHeartbeat()
-	c.scheduleToLoadKeystore()
 }
 
 func (c *Cluster) authAddr() (addr string) {
@@ -78,18 +77,6 @@ func (c *Cluster) scheduleToCheckHeartbeat() {
 			time.Sleep(time.Second * defaultIntervalToCheckHeartbeat)
 		}
 	}()
-}
-
-func (c *Cluster) scheduleToLoadKeystore() {
-	/*go func() {
-		for {
-			if c.partition != nil && !c.partition.IsRaftLeader() {
-				c.clearKeystore()
-				c.loadKeystore()
-			}
-			time.Sleep(time.Second * defaultIntervalToLoadKeystore)
-		}
-	}()*/
 }
 
 func (c *Cluster) checkLeaderAddr() {
