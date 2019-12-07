@@ -111,7 +111,7 @@ func (c *Cluster) CreateNewKey(id string, keyInfo *keystore.KeyInfo) (res *keyst
 		goto errHandler
 	}
 	res = keyInfo
-	//c.fsm.PutKey(keyInfo)
+	c.fsm.PutKey(keyInfo)
 	return
 errHandler:
 	err = fmt.Errorf("action[CreateNewKey], clusterID[%v] ID:%v, err:%v ", c.Name, keyInfo, err.Error())
@@ -130,7 +130,7 @@ func (c *Cluster) DeleteKey(id string) (res *keystore.KeyInfo, err error) {
 	if err = c.syncDeleteKey(res); err != nil {
 		goto errHandler
 	}
-	//c.fsm.DeleteKey(id)
+	c.fsm.DeleteKey(id)
 	return
 errHandler:
 	err = fmt.Errorf("action[DeleteKey], clusterID[%v] ID:%v, err:%v ", c.Name, id, err.Error())
@@ -181,7 +181,7 @@ func (c *Cluster) AddCaps(id string, keyInfo *keystore.KeyInfo) (res *keystore.K
 	if err = c.syncAddCaps(res); err != nil {
 		goto errHandler
 	}
-	//c.fsm.PutKey(res)
+	c.fsm.PutKey(res)
 	return
 errHandler:
 	err = fmt.Errorf("action[AddCaps], clusterID[%v] ID:%v, err:%v ", c.Name, keyInfo, err.Error())
@@ -221,7 +221,7 @@ func (c *Cluster) DeleteCaps(id string, keyInfo *keystore.KeyInfo) (res *keystor
 	if err = c.syncDeleteCaps(res); err != nil {
 		goto errHandler
 	}
-	//c.fsm.PutKey(res)
+	c.fsm.PutKey(res)
 	return
 errHandler:
 	err = fmt.Errorf("action[DeleteCaps], clusterID[%v] ID:%v, err:%v ", c.Name, keyInfo, err.Error())

@@ -53,6 +53,8 @@ type KeystoreFsm struct {
 	keystore   *map[string]*keystore.KeyInfo
 	ksMutex    sync.RWMutex // keystore mutex
 	opKeyMutex sync.RWMutex // operations on key mutex
+	id         uint64       // current id of server
+	leader     uint64       // cluster leader id
 }
 
 func newKeystoreFsm(store *raftstore.RocksDBStore, retainsLog uint64, rs *raft.RaftServer) (fsm *KeystoreFsm) {
@@ -115,6 +117,7 @@ func (mf *KeystoreFsm) Apply(command []byte, index uint64) (resp interface{}, er
 	cmdMap[applied] = []byte(strconv.FormatUint(uint64(index), 10))
 
 	for _, value := range cmdMap {
+		fmt.Print(string(value))
 		if err := json.Unmarshal(value, &keyInfo); err != nil {
 			panic(err)
 		}
@@ -125,12 +128,16 @@ func (mf *KeystoreFsm) Apply(command []byte, index uint64) (resp interface{}, er
 		if err = mf.delKeyAndPutIndex(cmd.K, cmdMap); err != nil {
 			panic(err)
 		}
-		mf.DeleteKey(string(keyInfo.Key))
+		if mf.leader != mf.id {
+			mf.DeleteKey(string(keyInfo.Key))
+		}
 	default:
 		if err = mf.batchPut(cmdMap); err != nil {
 			panic(err)
 		}
-		mf.PutKey(&keyInfo)
+		if mf.leader != mf.id {
+			mf.PutKey(&keyInfo)
+		}
 	}
 	mf.applied = index
 	if mf.applied > 0 && (mf.applied%mf.retainLogs) == 0 {
