@@ -1,0 +1,20 @@
+
+
+{
+ "role": "authnode",
+ "ip": "10.5.0.5",
+ "port": "8080",
+ "prof":"10088",
+ "id":"1",
+ "peers": "1:10.5.0.5:8080,2:10.5.0.6:8081",
+ "retainLogs":"2",
+ "logDir": "/export/Logs/authnode",
+ "logLevel":"info",
+ "walDir":"/export/Data/authnode/raft",
+ "storeDir":"/export/Data/authnode/rocksdbstore",
+ "exporterPort": 9510,
+ "consulAddr": "http://consul.prometheus-cfs.local",
+ "clusterName":"test",
+ "authServiceKey":"MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE=",
+ "authRootKey":"MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE="
+}

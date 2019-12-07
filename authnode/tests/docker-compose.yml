@@ -1,0 +1,41 @@
+
+
+version: '2'
+
+services:
+  cfs1:
+    container_name: cfs1
+    image: cfs1
+    restart: always
+    ports:
+     - "8080:8083"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.5
+  cfs2:
+    container_name: cfs2
+    image: cfs2
+    restart: always
+    ports:
+     - "8081:8084"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.6
+
+  cfs3:
+    container_name: cfs3
+    image: cfs3
+    restart: always
+    ports:
+     - "8082:8085"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.7
+
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1
