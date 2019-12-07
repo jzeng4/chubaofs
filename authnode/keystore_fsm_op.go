@@ -56,6 +56,7 @@ func (m *RaftCmd) setOpType() {
 	}
 }
 
+/*
 // KeyInfoValue define the values for a key
 type KeyInfoValue struct {
 	ID   string `json:"id"`
@@ -74,7 +75,7 @@ func newKeyInfoValue(keyInfo *keystore.KeyInfo) (vv *KeyInfoValue) {
 		Caps: keyInfo.Caps,
 	}
 	return
-}
+}*/
 
 func (c *Cluster) submit(metadata *RaftCmd) (err error) {
 	cmd, err := metadata.Marshal()
@@ -108,7 +109,7 @@ func (c *Cluster) syncPutKeyInfo(opType uint32, keyInfo *keystore.KeyInfo) (err 
 	keydata := new(RaftCmd)
 	keydata.Op = opType
 	keydata.K = ksPrefix + keyInfo.ID
-	vv := newKeyInfoValue(keyInfo)
+	vv := &keyInfo
 	if keydata.V, err = json.Marshal(vv); err != nil {
 		return errors.New(err.Error())
 	}
@@ -134,17 +135,17 @@ func (c *Cluster) loadKeystore() (err error) {
 		}
 		log.LogInfof("action[loadKeystore],key[%v]", k)
 	}
-	c.ksMutex.Lock()
-	defer c.ksMutex.Unlock()
-	c.keystore = &ks
+	c.fsm.ksMutex.Lock()
+	defer c.fsm.ksMutex.Unlock()
+	c.fsm.keystore = &ks
 
 	return
 }
 
 func (c *Cluster) clearKeystore() {
-	c.ksMutex.Lock()
-	defer c.ksMutex.Unlock()
-	c.keystore = nil
+	c.fsm.ksMutex.Lock()
+	defer c.fsm.ksMutex.Unlock()
+	c.fsm.keystore = nil
 }
 
 func (c *Cluster) addRaftNode(nodeID uint64, addr string) (err error) {

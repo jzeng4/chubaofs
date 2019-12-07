@@ -17,7 +17,6 @@ package authnode
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/chubaofs/chubaofs/proto"
@@ -45,9 +44,6 @@ type Cluster struct {
 	DisableAutoAllocate bool
 	fsm                 *KeystoreFsm
 	partition           raftstore.Partition
-	keystore            *map[string]*keystore.KeyInfo
-	ksMutex             sync.RWMutex // keystore mutex
-	opKeyMutex          sync.RWMutex // operations on key mutex
 	AuthSecretKey       []byte
 	AuthRootKey         []byte
 	PKIKey              PKIKey
@@ -60,7 +56,7 @@ func newCluster(name string, leaderInfo *LeaderInfo, fsm *KeystoreFsm, partition
 	c.cfg = cfg
 	c.fsm = fsm
 	c.partition = partition
-	c.keystore = new(map[string]*keystore.KeyInfo)
+	c.fsm.keystore = new(map[string]*keystore.KeyInfo)
 	return
 }
 
@@ -85,7 +81,7 @@ func (c *Cluster) scheduleToCheckHeartbeat() {
 }
 
 func (c *Cluster) scheduleToLoadKeystore() {
-	go func() {
+	/*go func() {
 		for {
 			if c.partition != nil && !c.partition.IsRaftLeader() {
 				c.clearKeystore()
@@ -93,7 +89,7 @@ func (c *Cluster) scheduleToLoadKeystore() {
 			}
 			time.Sleep(time.Second * defaultIntervalToLoadKeystore)
 		}
-	}()
+	}()*/
 }
 
 func (c *Cluster) checkLeaderAddr() {
@@ -101,36 +97,11 @@ func (c *Cluster) checkLeaderAddr() {
 	c.leaderInfo.addr = AddrDatabase[leaderID]
 }
 
-func (c *Cluster) putKey(k *keystore.KeyInfo) {
-	c.ksMutex.Lock()
-	defer c.ksMutex.Unlock()
-	if _, ok := (*c.keystore)[k.ID]; !ok {
-		(*c.keystore)[k.ID] = k
-	}
-}
-
-func (c *Cluster) getKey(id string) (u *keystore.KeyInfo, err error) {
-	c.ksMutex.RLock()
-	defer c.ksMutex.RUnlock()
-	u, ok := (*c.keystore)[id]
-	if !ok {
-		err = proto.ErrKeyNotExists
-	}
-	return
-}
-
-func (c *Cluster) deleteKey(id string) {
-	c.ksMutex.Lock()
-	defer c.ksMutex.Unlock()
-	delete((*c.keystore), id)
-	return
-}
-
 // CreateNewKey create a new key to the keystore
 func (c *Cluster) CreateNewKey(id string, keyInfo *keystore.KeyInfo) (res *keystore.KeyInfo, err error) {
-	c.opKeyMutex.Lock()
-	defer c.opKeyMutex.Unlock()
-	if _, err = c.getKey(id); err == nil {
+	c.fsm.opKeyMutex.Lock()
+	defer c.fsm.opKeyMutex.Unlock()
+	if _, err = c.fsm.GetKey(id); err == nil {
 		err = proto.ErrDuplicateKey
 		goto errHandler
 	}
@@ -140,7 +111,7 @@ func (c *Cluster) CreateNewKey(id string, keyInfo *keystore.KeyInfo) (res *keyst
 		goto errHandler
 	}
 	res = keyInfo
-	c.putKey(keyInfo)
+	//c.fsm.PutKey(keyInfo)
 	return
 errHandler:
 	err = fmt.Errorf("action[CreateNewKey], clusterID[%v] ID:%v, err:%v ", c.Name, keyInfo, err.Error())
@@ -150,16 +121,16 @@ errHandler:
 
 // DeleteKey delete a key from the keystore
 func (c *Cluster) DeleteKey(id string) (res *keystore.KeyInfo, err error) {
-	c.opKeyMutex.Lock()
-	defer c.opKeyMutex.Unlock()
-	if res, err = c.getKey(id); err != nil {
+	c.fsm.opKeyMutex.Lock()
+	defer c.fsm.opKeyMutex.Unlock()
+	if res, err = c.fsm.GetKey(id); err != nil {
 		err = proto.ErrKeyNotExists
 		goto errHandler
 	}
 	if err = c.syncDeleteKey(res); err != nil {
 		goto errHandler
 	}
-	c.deleteKey(id)
+	//c.fsm.DeleteKey(id)
 	return
 errHandler:
 	err = fmt.Errorf("action[DeleteKey], clusterID[%v] ID:%v, err:%v ", c.Name, id, err.Error())
@@ -169,7 +140,7 @@ errHandler:
 
 // GetKey get a key from the keystore
 func (c *Cluster) GetKey(id string) (res *keystore.KeyInfo, err error) {
-	if res, err = c.getKey(id); err != nil {
+	if res, err = c.fsm.GetKey(id); err != nil {
 		err = proto.ErrKeyNotExists
 		goto errHandler
 	}
@@ -187,9 +158,9 @@ func (c *Cluster) AddCaps(id string, keyInfo *keystore.KeyInfo) (res *keystore.K
 		curCaps *caps.Caps
 		newCaps []byte
 	)
-	c.opKeyMutex.Lock()
-	defer c.opKeyMutex.Unlock()
-	if res, err = c.getKey(id); err != nil {
+	c.fsm.opKeyMutex.Lock()
+	defer c.fsm.opKeyMutex.Unlock()
+	if res, err = c.fsm.GetKey(id); err != nil {
 		err = proto.ErrKeyNotExists
 		goto errHandler
 	}
@@ -210,7 +181,7 @@ func (c *Cluster) AddCaps(id string, keyInfo *keystore.KeyInfo) (res *keystore.K
 	if err = c.syncAddCaps(res); err != nil {
 		goto errHandler
 	}
-	c.putKey(res)
+	//c.fsm.PutKey(res)
 	return
 errHandler:
 	err = fmt.Errorf("action[AddCaps], clusterID[%v] ID:%v, err:%v ", c.Name, keyInfo, err.Error())
@@ -225,9 +196,9 @@ func (c *Cluster) DeleteCaps(id string, keyInfo *keystore.KeyInfo) (res *keystor
 		curCaps *caps.Caps
 		newCaps []byte
 	)
-	c.opKeyMutex.Lock()
-	defer c.opKeyMutex.Unlock()
-	if res, err = c.getKey(id); err != nil {
+	c.fsm.opKeyMutex.Lock()
+	defer c.fsm.opKeyMutex.Unlock()
+	if res, err = c.fsm.GetKey(id); err != nil {
 		err = proto.ErrKeyNotExists
 		goto errHandler
 	}
@@ -250,7 +221,7 @@ func (c *Cluster) DeleteCaps(id string, keyInfo *keystore.KeyInfo) (res *keystor
 	if err = c.syncDeleteCaps(res); err != nil {
 		goto errHandler
 	}
-	c.putKey(res)
+	//c.fsm.PutKey(res)
 	return
 errHandler:
 	err = fmt.Errorf("action[DeleteCaps], clusterID[%v] ID:%v, err:%v ", c.Name, keyInfo, err.Error())

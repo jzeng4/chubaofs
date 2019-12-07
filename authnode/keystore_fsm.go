@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"sync"
 
 	"github.com/chubaofs/chubaofs/raftstore"
+	"github.com/chubaofs/chubaofs/util/keystore"
 	"github.com/chubaofs/chubaofs/util/log"
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
@@ -47,6 +49,10 @@ type KeystoreFsm struct {
 	leaderChangeHandler raftLeaderChangeHandler
 	peerChangeHandler   raftPeerChangeHandler
 	snapshotHandler     raftApplySnapshotHandler
+
+	keystore   *map[string]*keystore.KeyInfo
+	ksMutex    sync.RWMutex // keystore mutex
+	opKeyMutex sync.RWMutex // operations on key mutex
 }
 
 func newKeystoreFsm(store *raftstore.RocksDBStore, retainsLog uint64, rs *raft.RaftServer) (fsm *KeystoreFsm) {
@@ -95,6 +101,9 @@ func (mf *KeystoreFsm) restoreApplied() {
 
 // Apply implements the interface of raft.StateMachine
 func (mf *KeystoreFsm) Apply(command []byte, index uint64) (resp interface{}, err error) {
+	var (
+		keyInfo keystore.KeyInfo
+	)
 	cmd := new(RaftCmd)
 	if err = cmd.Unmarshal(command); err != nil {
 		log.LogErrorf("action[fsmApply],unmarshal data:%v, err:%v", command, err.Error())
@@ -105,15 +114,23 @@ func (mf *KeystoreFsm) Apply(command []byte, index uint64) (resp interface{}, er
 	cmdMap[cmd.K] = cmd.V
 	cmdMap[applied] = []byte(strconv.FormatUint(uint64(index), 10))
 
+	for _, value := range cmdMap {
+		if err := json.Unmarshal(value, &keyInfo); err != nil {
+			panic(err)
+		}
+	}
+
 	switch cmd.Op {
 	case opSyncDeleteKey:
 		if err = mf.delKeyAndPutIndex(cmd.K, cmdMap); err != nil {
 			panic(err)
 		}
+		mf.DeleteKey(string(keyInfo.Key))
 	default:
 		if err = mf.batchPut(cmdMap); err != nil {
 			panic(err)
 		}
+		mf.PutKey(&keyInfo)
 	}
 	mf.applied = index
 	if mf.applied > 0 && (mf.applied%mf.retainLogs) == 0 {
